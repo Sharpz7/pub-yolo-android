@@ -19,6 +19,6 @@ names:
   5: graf_femhead
 args:
   batch: 1
-  half: false
+  half: true
   int8: false
   nms: false

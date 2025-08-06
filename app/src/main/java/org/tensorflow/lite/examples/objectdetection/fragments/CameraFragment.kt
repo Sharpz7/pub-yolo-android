@@ -350,23 +350,12 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
         imageWidth: Int
     ) {
         activity?.runOnUiThread {
-            fragmentCameraBinding.bottomSheetLayout.inferenceTimeVal.text =
-                            String.format("%d ms", inferenceTime)
-
-            // Pass necessary information to OverlayView for drawing on the canvas
-            fragmentCameraBinding.overlay.setResults(
-                results ?: LinkedList<ObjectDetection>(),
-                imageHeight,
-                imageWidth
-            )
-
-            // Update warm-cold indicator based on detection results
-            fragmentCameraBinding.warmColdIndicator.updateScore(
-                results ?: LinkedList<ObjectDetection>()
-            )
-
-            // Force a redraw
-            fragmentCameraBinding.overlay.invalidate()
+            _fragmentCameraBinding?.let { binding ->
+                binding.bottomSheetLayout.inferenceTimeVal.text = String.format("%d ms", inferenceTime)
+                binding.overlay.setResults(results, imageHeight, imageWidth)
+                binding.warmColdIndicator.updateScore(results)
+                binding.overlay.invalidate()
+            }
         }
     }
 
