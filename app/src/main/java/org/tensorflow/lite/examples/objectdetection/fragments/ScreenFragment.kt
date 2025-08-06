@@ -53,8 +53,10 @@ class ScreenFragment : Fragment() {
                 updateControlsUi()
                 // Update inference time display on each frame
                 screenCaptureService?.setOnFrameListener { results, inferenceTime, imageHeight, imageWidth ->
-                    requireActivity().runOnUiThread {
-                        binding.bottomSheetLayout.inferenceTimeVal.text = String.format("%d ms", inferenceTime)
+                    if (isAdded) {
+                        requireActivity().runOnUiThread {
+                            binding.bottomSheetLayout.inferenceTimeVal.text = String.format("%d ms", inferenceTime)
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -99,7 +101,9 @@ class ScreenFragment : Fragment() {
                 Log.e("ScreenFragment", "Overlay permission was not granted.")
                 // Handle the case where the user denies the permission.
                 // You might want to show a message and close the fragment.
-                requireActivity().onBackPressed()
+                if (isAdded) {
+                    requireActivity().onBackPressed()
+                }
             }
         }
 

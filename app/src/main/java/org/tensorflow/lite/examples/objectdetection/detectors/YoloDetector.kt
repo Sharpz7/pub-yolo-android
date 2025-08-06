@@ -19,7 +19,7 @@ import java.util.Locale
 class YoloDetector(
     var confidenceThreshold: Float = 0.5f,
     var iouThreshold: Float = 0.3f,
-    var numThreads: Int = 2,
+    var numThreads: Int = 4,
     var maxResults: Int = 3,
     var currentDelegate: Int = 0,
     var currentModel: Int = 0,

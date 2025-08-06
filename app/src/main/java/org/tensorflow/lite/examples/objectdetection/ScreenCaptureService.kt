@@ -244,9 +244,13 @@ class ScreenCaptureService : Service() {
                         aspectRatioCrop, 0, 0, aspectRatioCrop.width, aspectRatioCrop.height, matrix, true
                     )
 
-                    // Scale down to 640x480
+                    // Scale down to a size appropriate for the model
+                    // Calculate based on specific ratios: height/3.75 and width/2.25
+                    val scaledWidth = (cropWidth / 2.25).toInt()
+                    val scaledHeight = (cropHeight / 3.75).toInt()
+
                     val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(
-                        rotatedBitmap, 640, 480, true
+                        rotatedBitmap, scaledWidth, scaledHeight, true
                     )
 
                     // Pass the scaled bitmap to the detector
@@ -271,12 +275,17 @@ class ScreenCaptureService : Service() {
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
 
+        // Calculate overlay dimensions based on screen size with specific ratios
+        val overlayWidth = screenWidth
+        val overlayHeight = (screenHeight / 1.7).toInt()
+        val overlayY = (screenHeight / 8).toInt()
+
         // Bounding box overlay
         val overlayParams = WindowManager.LayoutParams(
-            1080,
-            1404,
+            overlayWidth,
+            overlayHeight,
             0,
-            300,
+            overlayY,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             flags,
             PixelFormat.TRANSLUCENT
@@ -287,7 +296,7 @@ class ScreenCaptureService : Service() {
 
         // Warm/Cold indicator overlay (bottom center)
         warmColdIndicatorView = WarmColdIndicatorView(this, null)
-        val indicatorHeight = 220  // Enough to show bar and text
+        val indicatorHeight = (screenHeight / 10.9).toInt()  // Approximately 220 for 2400 height
         val indicatorParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             indicatorHeight,
@@ -296,7 +305,7 @@ class ScreenCaptureService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = 50  // small bottom margin
+            y = (screenHeight / 48).toInt()  // Approximately 50 for 2400 height
         }
         windowManager.addView(warmColdIndicatorView, indicatorParams)
     }
