@@ -36,20 +36,22 @@
         android:keepScreenOn="true"
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph"
-        android:layout_marginTop="?android:attr/actionBarSize"
+        android:layout_marginTop="@dimen/toolbar_height"
         tools:context=".MainActivity"/>
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="@dimen/toolbar_height"
             android:layout_alignParentTop="true"
+            android:padding="@dimen/toolbar_padding"
             android:background="@color/toolbar_background">
+
 
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/tfl_logo" />
+                android:src="@drawable/retuve_logo" />
         </androidx.appcompat.widget.Toolbar>
 
     </RelativeLayout>

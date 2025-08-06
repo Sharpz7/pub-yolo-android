@@ -25,6 +25,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.Toast
+import androidx.appcompat.widget.SwitchCompat
+import android.preference.PreferenceManager
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -43,6 +45,14 @@ import org.tensorflow.lite.examples.objectdetection.R
 import org.tensorflow.lite.examples.objectdetection.databinding.FragmentCameraBinding
 import org.tensorflow.lite.examples.objectdetection.detectors.ObjectDetection
 import java.util.LinkedList
+import android.Manifest
+import android.content.pm.PackageManager
+import java.io.File
+import java.io.FileOutputStream
+import android.os.Environment
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
 
@@ -63,13 +73,19 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
     /** Blocking camera operations are performed using this executor */
     private lateinit var cameraExecutor: ExecutorService
 
+    override fun onPause() {
+        super.onPause()
+        fragmentCameraBinding.warmColdIndicator.visibility = View.GONE
+    }
+
     override fun onResume() {
         super.onResume()
-        // Make sure that all permissions are still present, since the
-        // user could have removed them while the app was in paused state.
-        if (!PermissionsFragment.hasPermissions(requireContext())) {
-            Navigation.findNavController(requireActivity(), R.id.fragment_container)
-                .navigate(CameraFragmentDirections.actionCameraToPermissions())
+        fragmentCameraBinding.warmColdIndicator.visibility = View.VISIBLE
+        // Make sure that camera permission is still present.
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
+            // If permission was revoked while in background, navigate back.
+            Navigation.findNavController(requireActivity(), R.id.fragment_container).popBackStack()
         }
     }
 
@@ -91,7 +107,6 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
         return fragmentCameraBinding.root
     }
 
-    @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -109,11 +124,38 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
             setUpCamera()
         }
 
-        // Attach listeners to UI control widgets
+        // Additional bottom-sheet listeners are handled separately below
+
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val switchShowBoxes = fragmentCameraBinding.bottomSheetLayout.root.findViewById<SwitchCompat>(R.id.switch_show_boxes)
+        switchShowBoxes?.let { sw ->
+            sw.isChecked = prefs.getBoolean("pref_show_boxes", true)
+            sw.setOnCheckedChangeListener { _, isChecked ->
+                prefs.edit().putBoolean("pref_show_boxes", isChecked).apply()
+                fragmentCameraBinding.overlay.invalidate()
+            }
+        }
+
+        // Initialize all bottom-sheet controls (threshold, max results, threads, delegates, models)
         initBottomSheetControls()
+        // Removed back button click listener
     }
 
     private fun initBottomSheetControls() {
+        // Guard against multiple initializations
+        if (fragmentCameraBinding.bottomSheetLayout.thresholdMinus.hasOnClickListeners()) return
+
+        val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+
+        // Bounding boxes switch
+        val switchShowBoxes = fragmentCameraBinding.bottomSheetLayout.root.findViewById<SwitchCompat>(R.id.switch_show_boxes)
+        switchShowBoxes.isChecked = prefs.getBoolean("pref_show_boxes", true)
+        switchShowBoxes.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("pref_show_boxes", isChecked).apply()
+            // Invalidate overlay so it redraws according to preference
+            fragmentCameraBinding.overlay.invalidate()
+        }
+
         // When clicked, lower detection score threshold floor
         fragmentCameraBinding.bottomSheetLayout.thresholdMinus.setOnClickListener {
             if (objectDetectorHelper.threshold >= 0.1) {
@@ -288,6 +330,7 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
             bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer)
         }
 
+        // saveBitmapForDebugging(bitmapBuffer)
         val imageRotation = image.imageInfo.rotationDegrees
         // Pass Bitmap and rotation to the object detector helper for processing and detection
         objectDetectorHelper.detect(bitmapBuffer, imageRotation)
@@ -317,6 +360,11 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
                 imageWidth
             )
 
+            // Update warm-cold indicator based on detection results
+            fragmentCameraBinding.warmColdIndicator.updateScore(
+                results ?: LinkedList<ObjectDetection>()
+            )
+
             // Force a redraw
             fragmentCameraBinding.overlay.invalidate()
         }
@@ -325,6 +373,24 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
     override fun onError(error: String) {
         activity?.runOnUiThread {
             Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun saveBitmapForDebugging(bitmap: android.graphics.Bitmap) {
+        try {
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+            val filename = "camera_input_$timestamp.png"
+
+            val storageDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            val imageFile = File(storageDir, filename)
+
+            FileOutputStream(imageFile).use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+            }
+
+            Log.d(TAG, "Saved CameraFragment input image to: ${imageFile.absolutePath}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving debug image", e)
         }
     }
 }

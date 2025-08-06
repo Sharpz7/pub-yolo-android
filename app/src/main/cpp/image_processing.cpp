@@ -4,6 +4,7 @@
 #include <jni.h>
 #include <android/log.h>
 #include <cpu-features.h>
+#include <stdint.h>
 
 #define LOG_TAG "ImageProcessing"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
@@ -44,31 +45,26 @@ Java_com_ultralytics_yolo_ImageProcessing_argb2yolo(
     jint height
 ) {
 
-    // Get the source array
-    jint* src = env->GetIntArrayElements(srcArray, 0);
-
-    // Get the destination DirectByteBuffer (this will hold the float data)
+    // Acquire destination DirectByteBuffer address first (allowed outside critical)
     float* dest = (float*) env->GetDirectBufferAddress(destBuffer);
-
     if (dest == NULL) {
-        // Handle error if the destination buffer is not a DirectByteBuffer
+        // Invalid buffer, nothing to do
         return;
     }
+    // Now get direct access to the source array without copying
+    jint* src = (jint*) env->GetPrimitiveArrayCritical(srcArray, NULL);
 
-    // Perform ARGB to RGB conversion and normalization to float (0.0f to 1.0f)
-    for (int i = 0; i < width * height; ++i) {
-        uint32_t pixel = src[i];  // ARGB format
-        float r = ((pixel >> 16) & 0xFF) / 255.0f;
-        float g = ((pixel >> 8) & 0xFF) / 255.0f;
-        float b = (pixel & 0xFF) / 255.0f;
-
-        // Store normalized float values for RGB channels
-        int idx = i * 3;
-        dest[idx] = r;     // Red
-        dest[idx + 1] = g; // Green
-        dest[idx + 2] = b; // Blue
+    // Convert ARGB to normalized RGB floats using pointer arithmetic
+    const int numPixels = width * height;
+    static const float inv255 = 1.0f / 255.0f;
+    jint* srcPtr = src;
+    float* destPtr = dest;
+    for (int i = 0; i < numPixels; ++i, ++srcPtr) {
+        uint32_t pixel = static_cast<uint32_t>(*srcPtr);
+        *destPtr++ = ((pixel >> 16) & 0xFF) * inv255;
+        *destPtr++ = ((pixel >> 8) & 0xFF) * inv255;
+        *destPtr++ = (pixel & 0xFF) * inv255;
     }
-
-    // Release resources
-    env->ReleaseIntArrayElements(srcArray, src, 0);
+    // Release without copying back since src not modified
+    env->ReleasePrimitiveArrayCritical(srcArray, src, JNI_ABORT);
 }

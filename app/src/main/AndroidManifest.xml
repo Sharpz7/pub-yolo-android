@@ -28,14 +28,24 @@
 
     <!-- Declare permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="28" />
 
     <application
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:allowBackup="true"
         android:taskAffinity=""
         tools:ignore="AllowBackup">
+
+        <service
+            android:name=".ScreenCaptureService"
+            android:foregroundServiceType="mediaProjection|specialUse"
+            android:exported="false" />
 
         <activity
             android:name=".MainActivity"

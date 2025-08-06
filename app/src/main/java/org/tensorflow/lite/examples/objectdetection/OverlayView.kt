@@ -23,7 +23,10 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
 import androidx.core.content.ContextCompat
 import org.tensorflow.lite.examples.objectdetection.detectors.ObjectDetection
 import java.util.LinkedList
@@ -39,7 +42,14 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
 
     private var scaleFactor: Float = 1f
 
+    private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+
     private var bounds = Rect()
+
+    companion object {
+        private const val BOUNDING_RECT_TEXT_PADDING = 8
+        private const val TAG = "OverlayView"
+    }
 
     init {
         initPaints()
@@ -70,7 +80,17 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
 
-        for (result in results) {
+        if (results.isEmpty()) {
+            Log.w(TAG, "No detection results to draw")
+            return
+        }
+
+        // Check user preference to show or hide bounding boxes
+        if (!prefs.getBoolean("pref_show_boxes", false)) {
+            return
+        }
+
+        for ((index, result) in results.withIndex()) {
             val boundingBox = result.boundingBox
 
             val top = boundingBox.top * scaleFactor
@@ -109,14 +129,26 @@ class OverlayView(context: Context?, attrs: AttributeSet?) : View(context, attrs
         imageHeight: Int,
         imageWidth: Int,
     ) {
+
+        // Log the incoming values so we can verify they are passed correctly
+        Log.d(TAG, "setResults called with ${detectionResults.size} detections, imageWidth=${imageWidth}, imageHeight=${imageHeight}")
+        detectionResults.forEachIndexed { index, detection ->
+            Log.d(
+                TAG,
+                "Detection #$index: bbox=${detection.boundingBox} label=${detection.category.label} confidence=${String.format("%.2f", detection.category.confidence)}"
+            )
+        }
+
         results = detectionResults
 
         // PreviewView is in FILL_START mode. So we need to scale up the bounding box to match with
         // the size that the captured images will be displayed.
         scaleFactor = max(width * 1f / imageWidth, height * 1f / imageHeight)
-    }
 
-    companion object {
-        private const val BOUNDING_RECT_TEXT_PADDING = 8
+        Log.d(TAG, "Calculated scaleFactor=$scaleFactor for viewSize=${width}x${height}")
+
+        // Force redraw
+        invalidate()
+        Log.d(TAG, "Invalidated view to trigger redraw")
     }
 }

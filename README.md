@@ -68,4 +68,26 @@ This application should be run on a physical Android device.
 *   With your Android device connected to your computer and developer mode
     enabled, click on the green Run arrow in Android Studio.
 
+# Camera
 
+mPopUpViewOffsets: offset=(0.0, 0.0), scale=(1.0, 1.0)
+Calculated scaleFactor=3.209375 for viewSize=1080x2054
+setResults called with 0 detections, imageWidth=480, imageHeight=640
+View size changed: 0x0 -> 1080x2054, position=(0,0)
+
+# Screen
+mPopUpViewOffsets: offset=(0.0, 0.0), scale=(1.0, 1.0)
+Screen metrics: 1080x2400
+OverlayView attached with width=1080, height=2054, x=100, y=0
+ View size changed: 0x0 -> 1080x2054, position=(0,0)
+ Processing image: 1080x2400
+ Calling object detection on scaled bitmap: 640x480
+ setResults called with 0 detections, imageWidth=480, imageHeight=640
+ Calculated scaleFactor=3.209375 for viewSize=1080x2054
+Actual layoutParams type: LayoutParams
+Full layoutParams type: androidx.coordinatorlayout.widget.CoordinatorLayout$LayoutParams
+LayoutParams width: -1, height: -1
+
+
+
+// https://icon.kitchen/i
